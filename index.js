@@ -4,7 +4,7 @@ const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 //middleware
 
@@ -26,6 +26,55 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+    const itemsCollection = client.db("itemsDB").collection("items");
+    app.get("/items", async (req, res) => {
+      const cursor = itemsCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/items/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await itemsCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.post("/items", async (req, res) => {
+      const newitems = req.body;
+      console.log(newitems);
+      const result = await itemsCollection.insertOne(newitems);
+      res.send(result);
+    });
+    app.put("/items/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedItems = req.body;
+      const items = {
+        $set: {
+          image: updatedItems.image,
+          item_name: updatedItems.item_name,
+          subcategory: updatedItems.subcategory,
+          description: updatedItems.description,
+          price: updatedItems.price,
+          rating: updatedItems.rating,
+          customization: updatedItems.customization,
+          processing_time: updatedItems.processing_time,
+          stockstatus: updatedItems.stockstatus,
+          user_email: updatedItems.user_email,
+          user_name: updatedItems.user_name,
+        },
+      };
+      const result = await itemsCollection.updateOne(filter, items);
+      res.send(result);
+    });
+    app.delete("/items/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await itemsCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -33,7 +82,7 @@ async function run() {
     );
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
